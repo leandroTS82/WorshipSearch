@@ -18,6 +18,10 @@ public class MusicRepository : IMusicRepository
     private readonly string _jsonFolder;
     private readonly ILogger<MusicRepository> _logger;
 
+    // In-memory cache: invalidated on every write/delete
+    private List<(string FileName, MusicDocument Doc)>? _cache;
+    private readonly SemaphoreSlim _lock = new(1, 1);
+
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         WriteIndented = true,
@@ -41,6 +45,7 @@ public class MusicRepository : IMusicRepository
         var filePath = Path.Combine(_jsonFolder, fileName);
         var json = JsonSerializer.Serialize(doc, JsonOptions);
         await File.WriteAllTextAsync(filePath, json);
+        _cache = null; // invalidate cache
         _logger.LogInformation("Saved {FileName}", fileName);
     }
 
@@ -55,25 +60,41 @@ public class MusicRepository : IMusicRepository
 
     public async Task<List<(string FileName, MusicDocument Doc)>> LoadAllAsync()
     {
-        var files = Directory.GetFiles(_jsonFolder, "*.json");
-        var results = new List<(string, MusicDocument)>();
+        if (_cache != null)
+            return _cache;
 
-        foreach (var file in files)
+        await _lock.WaitAsync();
+        try
         {
-            try
-            {
-                var json = await File.ReadAllTextAsync(file);
-                var doc = JsonSerializer.Deserialize<MusicDocument>(json);
-                if (doc != null)
-                    results.Add((Path.GetFileName(file), doc));
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to load {File}", file);
-            }
-        }
+            if (_cache != null)
+                return _cache;
 
-        return results;
+            var files = Directory.GetFiles(_jsonFolder, "*.json");
+            var results = new List<(string, MusicDocument)>(files.Length);
+
+            foreach (var file in files)
+            {
+                try
+                {
+                    var json = await File.ReadAllTextAsync(file);
+                    var doc = JsonSerializer.Deserialize<MusicDocument>(json);
+                    if (doc != null)
+                        results.Add((Path.GetFileName(file), doc));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to load {File}", file);
+                }
+            }
+
+            _cache = results;
+            _logger.LogInformation("Cache loaded: {Count} documents", results.Count);
+            return _cache;
+        }
+        finally
+        {
+            _lock.Release();
+        }
     }
 
     public Task DeleteAsync(string fileName)
@@ -81,6 +102,7 @@ public class MusicRepository : IMusicRepository
         var filePath = Path.Combine(_jsonFolder, fileName);
         if (File.Exists(filePath))
             File.Delete(filePath);
+        _cache = null; // invalidate cache
         return Task.CompletedTask;
     }
 }
