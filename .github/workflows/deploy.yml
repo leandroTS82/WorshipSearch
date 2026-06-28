@@ -24,7 +24,7 @@ jobs:
         run: dotnet restore WorshipSearch.csproj
 
       - name: Publish
-        run: dotnet publish WorshipSearch.csproj -c Release -o ./publish
+        run: dotnet publish WorshipSearch.csproj -c Release -r win-x64 --self-contained true -o ./publish
 
       - name: Push artifacts to deploy branch
         run: |
