@@ -36,9 +36,9 @@ public class MusicJsonGenerator : IMusicJsonGenerator
 
     public static string BuildId(string artist, string title)
     {
-        // ID is title-only to prevent duplicates of the same song by different artists.
-        // Artist is stored as metadata, not as part of the identity.
-        return Slugify(title);
+        var artistSlug = Slugify(artist);
+        var titleSlug = Slugify(title);
+        return $"{artistSlug}_{titleSlug}";
     }
 
     public static string Slugify(string text)
