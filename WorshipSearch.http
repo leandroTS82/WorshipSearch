@@ -1,6 +1,0 @@
-@WorshipSearch_HostAddress = http://localhost:5252
-
-GET {{WorshipSearch_HostAddress}}/weatherforecast/
-Accept: application/json
-
-###
