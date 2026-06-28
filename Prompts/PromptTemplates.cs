@@ -2,29 +2,48 @@ namespace WorshipSearch.Prompts;
 
 public static class PromptTemplates
 {
-    public const string EnrichmentSystemInstruction = @"You are a worship music analyst. Analyze the song and return ONLY valid JSON with no extra text, no markdown code blocks, no explanation.";
+    public const string ParagraphEnrichmentTemplate = @"You are building a worship music search index stanza by stanza.
 
-    public const string EnrichmentTemplate = @"Analyze this worship song and return a JSON object with these fields:
-- themes: array of main theological/worship themes (strings)
-- contexts: array of worship contexts where this song fits (e.g., ""abertura"", ""comunhão"", ""intercessão"", ""ceia"", ""encerramento"")
-- keywords: array of keywords for search
-- biblical_topics: array of biblical topics covered
-- biblical_references: array of specific Bible verse references (e.g., ""João 3:16"")
-- biblical_books: array of Bible books referenced or alluded to
-- biblical_characters: array of biblical figures mentioned or alluded to
-- moods: array of emotional moods (e.g., ""adoração"", ""gratidão"", ""clamor"", ""celebração"")
-- synonyms: array of synonym search terms
-- worship_style: string describing worship style (e.g., ""contemporâneo"", ""tradicional"", ""pentecostal"")
-- energy_level: string - one of: ""baixa"", ""média"", ""alta""
-- occasion: string describing main occasion (e.g., ""culto dominical"", ""conferência de jovens"", ""oração"")
-- summary: 2-3 sentence summary of the song's message
-- explanation: deeper theological explanation (3-5 sentences)
-- practical_application: how to use this song in worship (2-3 sentences)
+Song: ""{title}"" by {artist}
 
-Song title: {title}
-Artist: {artist}
-Lyrics:
-{lyrics}
+Tags already identified from previous stanzas (DO NOT repeat any of these):
+- themes: {existing_themes}
+- moods: {existing_moods}
+- contexts: {existing_contexts}
+- keywords: {existing_keywords}
+- biblical_topics: {existing_biblical_topics}
+- biblical_references: {existing_biblical_references}
+- biblical_books: {existing_biblical_books}
+- biblical_characters: {existing_biblical_characters}
+- synonyms: {existing_synonyms}
+- worship_style: ""{existing_worship_style}""
+- energy_level: ""{existing_energy_level}""
+- occasion: ""{existing_occasion}""
+
+Analyze this stanza and return ONLY NEW tags not already listed above:
+---
+{paragraph}
+---
+
+Return a JSON object with these exact fields. Use empty arrays [] or empty string """" for fields with nothing new. NEVER repeat values already listed above.
+
+Fields: themes, moods, contexts, keywords, biblical_topics, biblical_references, biblical_books, biblical_characters, synonyms, worship_style, energy_level, occasion
 
 Return ONLY the JSON object, no other text.";
+
+    public const string SummaryTemplate = @"Based on the complete analysis of the worship song ""{title}"" by {artist}:
+
+Identified tags:
+{tags_json}
+
+Full lyrics:
+{lyrics}
+
+Write in Portuguese (pt-BR):
+- summary: 2-3 sentence summary of the song's spiritual message
+- explanation: deeper theological explanation (3-5 sentences)
+- practical_application: how a worship leader should use this song in a church service (2-3 sentences)
+
+Return ONLY a JSON object with exactly these three fields: summary, explanation, practical_application
+No other text.";
 }

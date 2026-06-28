@@ -10,15 +10,22 @@ public interface IJsonSearchEngine
 public class JsonSearchEngine : IJsonSearchEngine
 {
     private readonly IMusicRepository _repository;
+    private readonly ISearchRestrictionsService _restrictions;
 
-    public JsonSearchEngine(IMusicRepository repository)
+    public JsonSearchEngine(IMusicRepository repository, ISearchRestrictionsService restrictions)
     {
         _repository = repository;
+        _restrictions = restrictions;
     }
 
     public async Task<List<LibrarySearchResult>> SearchAsync(SearchQuery query)
     {
         var all = await _repository.LoadAllAsync();
+        var restrictions = await _restrictions.LoadAsync();
+        var excluded = restrictions.Excluded
+            .Select(e => e.ToLowerInvariant())
+            .ToHashSet();
+
         var results = new List<LibrarySearchResult>();
 
         var terms = string.IsNullOrWhiteSpace(query.Query)
@@ -28,6 +35,7 @@ public class JsonSearchEngine : IJsonSearchEngine
         foreach (var (fileName, doc) in all)
         {
             if (query.ApprovedOnly && !doc.Approved) continue;
+            if (excluded.Count > 0 && IsExcluded(doc, excluded)) continue;
 
             double score = string.IsNullOrWhiteSpace(query.Query)
                 ? 1.0
@@ -52,10 +60,22 @@ public class JsonSearchEngine : IJsonSearchEngine
             .ToList();
     }
 
+    private static bool IsExcluded(MusicDocument doc, HashSet<string> excluded)
+    {
+        var genre = doc.Genre?.ToLowerInvariant() ?? string.Empty;
+        var style = doc.Search?.WorshipStyle?.ToLowerInvariant() ?? string.Empty;
+
+        foreach (var term in excluded)
+        {
+            if (genre.Contains(term) || style.Contains(term))
+                return true;
+        }
+        return false;
+    }
+
     private static double ScoreDocument(MusicDocument doc, string[] terms)
     {
         double total = 0;
-
         foreach (var term in terms)
         {
             total += ScoreField(doc.Title, term, weight: 10);
@@ -75,7 +95,6 @@ public class JsonSearchEngine : IJsonSearchEngine
             total += ScoreField(doc.Explanation, term, weight: 2);
             total += ScoreField(doc.PracticalApplication, term, weight: 1);
         }
-
         return total;
     }
 

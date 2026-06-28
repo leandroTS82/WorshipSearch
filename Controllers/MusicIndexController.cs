@@ -48,16 +48,32 @@ public class MusicIndexController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Enrich([FromBody] MusicDocument doc)
+    public async Task<IActionResult> EnrichParagraph([FromBody] EnrichParagraphRequest req)
     {
         try
         {
-            var enriched = await _enrichment.EnrichAsync(doc);
-            return Json(enriched);
+            var newTags = await _enrichment.EnrichParagraphAsync(
+                req.Paragraph, req.Title, req.Artist, req.ExistingTags);
+            return Json(newTags);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Enrichment failed");
+            _logger.LogError(ex, "Paragraph enrichment failed");
+            return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> EnrichSummary([FromBody] MusicDocument doc)
+    {
+        try
+        {
+            var (summary, explanation, practical) = await _enrichment.EnrichSummaryAsync(doc);
+            return Json(new { summary, explanation, practical_application = practical });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Summary enrichment failed");
             return StatusCode(500, new { error = ex.Message });
         }
     }

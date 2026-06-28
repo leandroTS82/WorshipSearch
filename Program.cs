@@ -33,6 +33,7 @@ builder.Services.AddSingleton<IMusicJsonGenerator, MusicJsonGenerator>();
 builder.Services.AddSingleton<IPromptBuilder, PromptBuilder>();
 builder.Services.AddScoped<IMusicEnrichmentService, MusicEnrichmentService>();
 builder.Services.AddSingleton<IMusicRepository, MusicRepository>();
+builder.Services.AddSingleton<ISearchRestrictionsService, SearchRestrictionsService>();
 builder.Services.AddSingleton<IJsonSearchEngine, JsonSearchEngine>();
 
 var app = builder.Build();

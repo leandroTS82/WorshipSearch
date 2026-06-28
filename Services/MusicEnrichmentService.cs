@@ -8,7 +8,8 @@ namespace WorshipSearch.Services;
 
 public interface IMusicEnrichmentService
 {
-    Task<MusicDocument> EnrichAsync(MusicDocument doc);
+    Task<SearchMetadata> EnrichParagraphAsync(string paragraph, string title, string artist, SearchMetadata existing);
+    Task<(string Summary, string Explanation, string PracticalApplication)> EnrichSummaryAsync(MusicDocument doc);
 }
 
 public class MusicEnrichmentService : IMusicEnrichmentService
@@ -24,52 +25,58 @@ public class MusicEnrichmentService : IMusicEnrichmentService
         _logger = logger;
     }
 
-    public async Task<MusicDocument> EnrichAsync(MusicDocument doc)
+    public async Task<SearchMetadata> EnrichParagraphAsync(string paragraph, string title, string artist, SearchMetadata existing)
     {
+        var prompt = _promptBuilder.BuildParagraphPrompt(paragraph, title, artist, existing);
+        var response = await _groqService.CompleteAsync(prompt);
+        return ParseTagsOnly(response);
+    }
+
+    public async Task<(string Summary, string Explanation, string PracticalApplication)> EnrichSummaryAsync(MusicDocument doc)
+    {
+        var prompt = _promptBuilder.BuildSummaryPrompt(doc);
+        var response = await _groqService.CompleteAsync(prompt);
+
+        var cleaned = Regex.Replace(response, @"```(?:json)?", string.Empty).Trim();
+        var node = JsonNode.Parse(cleaned);
+        if (node == null) return (string.Empty, string.Empty, string.Empty);
+
+        return (
+            node["summary"]?.GetValue<string>() ?? string.Empty,
+            node["explanation"]?.GetValue<string>() ?? string.Empty,
+            node["practical_application"]?.GetValue<string>() ?? string.Empty
+        );
+    }
+
+    private static SearchMetadata ParseTagsOnly(string llmResponse)
+    {
+        var result = new SearchMetadata();
         try
         {
-            var prompt = _promptBuilder.BuildEnrichmentPrompt(doc);
-            var response = await _groqService.CompleteAsync(prompt);
+            var cleaned = Regex.Replace(llmResponse, @"```(?:json)?", string.Empty).Trim();
+            var node = JsonNode.Parse(cleaned);
+            if (node == null) return result;
 
-            ApplyEnrichment(doc, response);
+            result.Themes = ParseArray(node["themes"]);
+            result.Moods = ParseArray(node["moods"]);
+            result.Contexts = ParseArray(node["contexts"]);
+            result.Keywords = ParseArray(node["keywords"]);
+            result.BiblicalTopics = ParseArray(node["biblical_topics"]);
+            result.BiblicalReferences = ParseArray(node["biblical_references"]);
+            result.BiblicalBooks = ParseArray(node["biblical_books"]);
+            result.BiblicalCharacters = ParseArray(node["biblical_characters"]);
+            result.Synonyms = ParseArray(node["synonyms"]);
+            result.WorshipStyle = node["worship_style"]?.GetValue<string>() ?? string.Empty;
+            result.EnergyLevel = node["energy_level"]?.GetValue<string>() ?? string.Empty;
+            result.Occasion = node["occasion"]?.GetValue<string>() ?? string.Empty;
         }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "LLM enrichment failed for {Title}", doc.Title);
-            // Return doc without enrichment — fallback
-        }
-
-        return doc;
+        catch { /* return empty on parse failure */ }
+        return result;
     }
 
-    private void ApplyEnrichment(MusicDocument doc, string llmResponse)
+    private static List<string> ParseArray(JsonNode? node)
     {
-        // Strip markdown code blocks if present
-        var cleaned = Regex.Replace(llmResponse, @"```(?:json)?", string.Empty).Trim();
-
-        var jsonNode = JsonNode.Parse(cleaned);
-        if (jsonNode == null) return;
-
-        doc.Search.Themes = ParseStringArray(jsonNode["themes"]);
-        doc.Search.Contexts = ParseStringArray(jsonNode["contexts"]);
-        doc.Search.Keywords = ParseStringArray(jsonNode["keywords"]);
-        doc.Search.BiblicalTopics = ParseStringArray(jsonNode["biblical_topics"]);
-        doc.Search.BiblicalReferences = ParseStringArray(jsonNode["biblical_references"]);
-        doc.Search.BiblicalBooks = ParseStringArray(jsonNode["biblical_books"]);
-        doc.Search.BiblicalCharacters = ParseStringArray(jsonNode["biblical_characters"]);
-        doc.Search.Moods = ParseStringArray(jsonNode["moods"]);
-        doc.Search.Synonyms = ParseStringArray(jsonNode["synonyms"]);
-        doc.Search.WorshipStyle = jsonNode["worship_style"]?.GetValue<string>() ?? string.Empty;
-        doc.Search.EnergyLevel = jsonNode["energy_level"]?.GetValue<string>() ?? string.Empty;
-        doc.Search.Occasion = jsonNode["occasion"]?.GetValue<string>() ?? string.Empty;
-        doc.Summary = jsonNode["summary"]?.GetValue<string>() ?? string.Empty;
-        doc.Explanation = jsonNode["explanation"]?.GetValue<string>() ?? string.Empty;
-        doc.PracticalApplication = jsonNode["practical_application"]?.GetValue<string>() ?? string.Empty;
-    }
-
-    private static List<string> ParseStringArray(JsonNode? node)
-    {
-        if (node is not JsonArray arr) return new List<string>();
+        if (node is not JsonArray arr) return new();
         return arr
             .Select(n => n?.GetValue<string>() ?? string.Empty)
             .Where(s => !string.IsNullOrWhiteSpace(s))
