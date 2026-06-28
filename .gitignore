@@ -361,3 +361,9 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+# Publish output in project root (committed by mistake)
+/*.dll
+/*.exe
+/*.deps.json
+/*.runtimeconfig.json
+/*.staticwebassets.endpoints.json
