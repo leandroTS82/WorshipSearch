@@ -41,4 +41,13 @@ public class MusicLibraryController : Controller
         await _repository.SaveAsync(doc);
         return Json(new { success = true, approved = doc.Approved });
     }
+
+    [HttpGet]
+    public async Task<IActionResult> Stats()
+    {
+        var all = await _repository.LoadAllAsync();
+        var total = all.Count;
+        var approved = all.Count(d => d.Doc.Approved);
+        return Json(new { total, approved });
+    }
 }
