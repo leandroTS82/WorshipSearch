@@ -31,9 +31,9 @@ jobs:
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: 50.63.8.185
-          username: ${{ secrets.FTP_USERNAME }}
+          username: worshipsearch
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
-          server-dir: /WorshipSearch.twobrothermotors.com.br/
+          server-dir: /
           protocol: ftps
           port: 21
