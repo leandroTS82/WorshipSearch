@@ -12,4 +12,36 @@
     <PackageReference Include="HtmlAgilityPack" Version="1.11.61" />
   </ItemGroup>
 
+  <!-- Exclude stale build artifacts from project root so publish doesn't find duplicate output files -->
+  <ItemGroup>
+    <None Remove="*.dll" />
+    <None Remove="*.exe" />
+    <Content Remove="*.dll" />
+    <Content Remove="*.exe" />
+    <Compile Remove="*.dll" />
+  </ItemGroup>
+
+  <Target Name="RemoveDuplicatePublishOutputs" BeforeTargets="PrepareForPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'WorshipSearch.deps.json'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)WorshipSearch.deps.json'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'WorshipSearch.runtimeconfig.json'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)WorshipSearch.runtimeconfig.json'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'HtmlAgilityPack.dll'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)HtmlAgilityPack.dll'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'WorshipSearch.dll'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)WorshipSearch.dll'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'WorshipSearch.exe'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)WorshipSearch.exe'" />
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+        Condition="'%(ResolvedFileToPublish.RelativePath)' == 'WorshipSearch.staticwebassets.endpoints.json'
+                   AND '%(ResolvedFileToPublish.FullPath)' != '$(OutDir)WorshipSearch.staticwebassets.endpoints.json'" />
+    </ItemGroup>
+  </Target>
+
 </Project>
