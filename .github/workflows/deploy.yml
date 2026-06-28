@@ -30,10 +30,10 @@ jobs:
       - name: Deploy via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: p3nwvpweb180.shr.prod.phx3.secureserver.net
+          server: 50.63.8.185
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./publish/
-          server-dir: /httpdocs/
-          protocol: ftp
+          server-dir: /WorshipSearch.twobrothermotors.com.br/
+          protocol: ftps
           port: 21
