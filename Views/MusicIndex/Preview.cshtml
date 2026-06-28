@@ -83,6 +83,17 @@
             <!-- Result -->
             <div id="enrichResult" style="display:none;padding:20px">
 
+                <!-- Worship Moments -->
+                <div class="ws-form-group" style="margin-bottom:20px">
+                    <div class="ws-label" style="margin-bottom:10px">Momento do Culto <span style="font-weight:400;color:var(--text-dim);font-size:11px">(selecione um ou mais)</span></div>
+                    <div id="moments-area" style="display:flex;flex-wrap:wrap;gap:7px">
+                        @foreach (var m in new[]{"Celebração","Adoração","Santa Ceia","Apelo","Intercessão","Ofertório","Abertura","Encerramento"})
+                        {
+                            <button type="button" class="ws-moment-btn" data-moment="@m" onclick="toggleMoment('@m',this)">@m</button>
+                        }
+                    </div>
+                </div>
+
                 <!-- Summary -->
                 <div class="ws-form-group">
                     <div class="ws-label">Resumo</div>
@@ -149,6 +160,26 @@
 </div>
 
 @section Scripts {
+<style>
+.ws-moment-btn {
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+}
+.ws-moment-btn:hover { border-color: var(--accent-line); color: var(--text); }
+.ws-moment-btn.selected {
+    background: var(--accent-soft);
+    border-color: var(--accent-line);
+    color: var(--accent);
+    font-weight: 500;
+}
+</style>
 <script>
 var docData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new System.Text.Json.JsonSerializerOptions {
     Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
@@ -157,11 +188,30 @@ var docData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model, new Sys
 
 // Ensure search object exists
 if (!docData.search) docData.search = {};
-var arrayFields = ['themes','moods','contexts','keywords','biblical_topics','biblical_references','biblical_books','biblical_characters','synonyms'];
+var arrayFields = ['themes','moods','contexts','keywords','biblical_topics','biblical_references','biblical_books','biblical_characters','synonyms','worship_moments'];
 arrayFields.forEach(function(f){ if (!docData.search[f]) docData.search[f] = []; });
 if (!docData.search.worship_style) docData.search.worship_style = '';
 if (!docData.search.energy_level) docData.search.energy_level = '';
 if (!docData.search.occasion) docData.search.occasion = '';
+if (!docData.search.worship_moments) docData.search.worship_moments = [];
+
+// Init moment buttons from existing data
+(docData.search.worship_moments || []).forEach(function(m){
+    $('.ws-moment-btn[data-moment="' + m + '"]').addClass('selected');
+});
+
+function toggleMoment(moment, btn) {
+    var moments = docData.search.worship_moments || [];
+    var idx = moments.indexOf(moment);
+    if (idx === -1) {
+        moments.push(moment);
+        $(btn).addClass('selected');
+    } else {
+        moments.splice(idx, 1);
+        $(btn).removeClass('selected');
+    }
+    docData.search.worship_moments = moments;
+}
 
 function escHtml(s) {
     return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

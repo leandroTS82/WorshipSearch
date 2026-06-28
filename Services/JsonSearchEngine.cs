@@ -87,6 +87,7 @@ public class JsonSearchEngine : IJsonSearchEngine
             total += ScoreList(doc.Search.BiblicalBooks, term, weight: 4);
             total += ScoreList(doc.Search.Contexts, term, weight: 4);
             total += ScoreList(doc.Search.Moods, term, weight: 3);
+            total += ScoreList(doc.Search.WorshipMoments, term, weight: 6);
             total += ScoreField(doc.Summary, term, weight: 3);
             total += ScoreField(doc.Search.Occasion, term, weight: 3);
             total += ScoreList(doc.Search.Synonyms, term, weight: 3);

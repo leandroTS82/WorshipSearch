@@ -62,7 +62,17 @@
                     <label class="ws-label" style="margin:0">Idioma</label>
                     <input type="text" id="f-language" class="ws-input" style="padding:7px 12px;width:120px;font-size:13px" value="@Model.Language" />
                 </div>
-                <div style="display:flex;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid var(--border-card)">
+                <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border-card)">
+                    <div class="ws-label" style="margin-bottom:8px">Momento do Culto</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px" id="editor-moments">
+                        @foreach (var m in new[]{"Celebração","Adoração","Santa Ceia","Apelo","Intercessão","Ofertório","Abertura","Encerramento"})
+                        {
+                            var selected = (Model.Search?.WorshipMoments ?? new()).Contains(m);
+                            <button type="button" class="ws-moment-btn @(selected ? "selected" : "")" data-moment="@m" onclick="toggleEditorMoment('@m',this)">@m</button>
+                        }
+                    </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;margin-top:14px;padding-top:14px;border-top:1px solid var(--border-card)">
                     <input type="checkbox" id="f-approved" @(Model.Approved ? "checked" : "") style="width:16px;height:16px;accent-color:var(--accent);cursor:pointer" />
                     <label for="f-approved" style="cursor:pointer;font-size:14px">Aprovada</label>
                 </div>
@@ -151,7 +161,30 @@
 </div>
 
 @section Scripts {
+<style>
+.ws-moment-btn {
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--border-card);
+    background: var(--bg-input);
+    color: var(--text-muted);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background .12s, border-color .12s, color .12s;
+}
+.ws-moment-btn:hover { border-color: var(--accent-line); color: var(--text); }
+.ws-moment-btn.selected { background: var(--accent-soft); border-color: var(--accent-line); color: var(--accent); font-weight: 500; }
+</style>
 <script>
+var editorMoments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Search?.WorshipMoments ?? new System.Collections.Generic.List<string>()));
+
+function toggleEditorMoment(moment, btn) {
+    var idx = editorMoments.indexOf(moment);
+    if (idx === -1) { editorMoments.push(moment); $(btn).addClass('selected'); }
+    else { editorMoments.splice(idx, 1); $(btn).removeClass('selected'); }
+}
+
 function toLines(id) {
     return $('#' + id).val().split('\n').map(function(s){ return s.trim(); }).filter(function(s){ return s; });
 }
@@ -181,7 +214,8 @@ function collectDoc() {
             synonyms: toLines('f-synonyms'),
             worship_style: $('#f-worship-style').val(),
             energy_level: $('#f-energy-level').val(),
-            occasion: $('#f-occasion').val()
+            occasion: $('#f-occasion').val(),
+            worship_moments: editorMoments
         },
         metadata: {
             source: 'letras.mus.br',

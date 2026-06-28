@@ -81,6 +81,9 @@ public class SearchMetadata
 
     [JsonPropertyName("occasion")]
     public string Occasion { get; set; } = string.Empty;
+
+    [JsonPropertyName("worship_moments")]
+    public List<string> WorshipMoments { get; set; } = new();
 }
 
 public class MusicMetadata
