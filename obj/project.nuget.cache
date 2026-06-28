@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "wULi6bE7w0Y=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/WorshipSearch/WorshipSearch/WorshipSearch.csproj",
+  "expectedPackageFiles": [
+    "/home/runner/.nuget/packages/htmlagilitypack/1.11.61/htmlagilitypack.1.11.61.nupkg.sha512"
+  ],
+  "logs": []
+}
