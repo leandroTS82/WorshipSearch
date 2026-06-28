@@ -62,10 +62,11 @@ public class MusicHtmlParser : IMusicHtmlParser
             result.Artist = artistPart.Trim();
         }
 
-        // Find lyrics div
-        var lyricsNode = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'lyric') and not(contains(@class,'lyric-all'))]")
-            ?? doc.DocumentNode.SelectSingleNode("//div[contains(@class,'cnt-letra')]")
-            ?? doc.DocumentNode.SelectSingleNode("//*[contains(@class,'lyric')]");
+        // Find lyrics div — ordered from most to least specific
+        var lyricsNode = doc.DocumentNode.SelectSingleNode("//div[contains(@class,'cnt-letra')]")
+            ?? doc.DocumentNode.SelectSingleNode("//div[contains(@class,'lyric-original')]")
+            ?? doc.DocumentNode.SelectSingleNode("//div[@id='letra-cnt']")
+            ?? doc.DocumentNode.SelectSingleNode("//article[contains(@class,'lyric')]");
 
         if (lyricsNode != null)
         {
@@ -81,31 +82,34 @@ public class MusicHtmlParser : IMusicHtmlParser
 
     private static string ParseLyrics(HtmlNode node)
     {
-        // Replace <br> with newline, <p> blocks with double newline
         var sb = new System.Text.StringBuilder();
 
-        foreach (var child in node.ChildNodes)
+        // Only process <p> tags — each <p> is a stanza; <br> inside = line break
+        var paragraphs = node.SelectNodes(".//p");
+        if (paragraphs != null)
         {
-            if (child.Name == "p")
+            foreach (var p in paragraphs)
             {
-                foreach (var inner in child.ChildNodes)
+                foreach (var child in p.ChildNodes)
                 {
-                    if (inner.Name == "br")
+                    if (child.Name == "br")
                         sb.AppendLine();
-                    else
-                        sb.Append(HtmlEntity.DeEntitize(inner.InnerText));
+                    else if (child.Name == "i" || child.Name == "b" || child.Name == "span")
+                        sb.Append(HtmlEntity.DeEntitize(child.InnerText));
+                    else if (child.NodeType == HtmlNodeType.Text)
+                        sb.Append(HtmlEntity.DeEntitize(child.InnerText));
                 }
                 sb.AppendLine();
                 sb.AppendLine();
             }
-            else if (child.Name == "br")
-            {
-                sb.AppendLine();
-            }
-            else
-            {
-                sb.Append(HtmlEntity.DeEntitize(child.InnerText));
-            }
+        }
+        else
+        {
+            // Fallback: no <p> tags, just replace <br> with newlines
+            var html = node.InnerHtml;
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"<br\s*/?>", "\n", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            html = System.Text.RegularExpressions.Regex.Replace(html, @"<[^>]+>", string.Empty);
+            sb.Append(HtmlEntity.DeEntitize(html));
         }
 
         return sb.ToString().Trim();
