@@ -220,15 +220,15 @@
         .ws-divider { height: 1px; background: var(--border-card); margin: 24px 0; }
 
         /* Fade animation */
-        @keyframes wsfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        @@keyframes wsfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .ws-fade { animation: wsfade .2s ease; }
 
         /* Spinner */
         .ws-spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
+        @@keyframes spin { to { transform: rotate(360deg); } }
 
         /* Responsive */
-        @media (max-width: 860px) {
+        @@media (max-width: 860px) {
             body { flex-direction: column; }
             #ws-side { width: 100%; height: auto; position: static; flex-direction: row; align-items: center; gap: 8px; overflow-x: auto; padding: 12px 14px; border-right: none; border-bottom: 1px solid var(--border); }
             #ws-nav { flex-direction: row; flex: 1; gap: 4px; }
