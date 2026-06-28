@@ -8,6 +8,8 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout
@@ -34,7 +36,7 @@ jobs:
           cp -r ./publish/. .
           git add -A
           git commit -m "Deploy from master $(git rev-parse --short origin/master)" || echo "Nothing to commit"
-          git push origin deploy
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/leandroTS82/WorshipSearch.git deploy
 
       - name: Notify Plesk webhook
         run: |
