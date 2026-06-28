@@ -55,7 +55,3 @@ public class SearchRestrictionsController : Controller
     }
 }
 
-public class AddRestrictionRequest
-{
-    public string Term { get; set; } = string.Empty;
-}

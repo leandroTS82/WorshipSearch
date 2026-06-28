@@ -13,6 +13,8 @@ public interface ISearchHistoryService
 
 public class SearchHistoryService : ISearchHistoryService
 {
+    private const int SelectionRecord = -1;
+
     private readonly string _filePath;
     private readonly SemaphoreSlim _lock = new(1, 1);
 
@@ -43,7 +45,7 @@ public class SearchHistoryService : ISearchHistoryService
         await AppendAsync(new SearchHistoryEntry
         {
             Query = query.Trim().ToLowerInvariant(),
-            ResultCount = -1, // -1 = selection record
+            ResultCount = SelectionRecord,
             SelectedTitle = title,
             SelectedArtist = artist,
             PickedManually = pickedManually

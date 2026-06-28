@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using WorshipSearch.Models;
 using WorshipSearch.Services;
 
 namespace WorshipSearch.Controllers;
@@ -19,7 +20,7 @@ public class SearchHistoryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Log([FromBody] LogRequest req)
+    public async Task<IActionResult> Log([FromBody] LogSearchRequest req)
     {
         await _history.LogSearchAsync(req.Query, req.ResultCount);
         return Json(new { ok = true });
@@ -38,18 +39,4 @@ public class SearchHistoryController : Controller
         await _history.ClearAsync();
         return Json(new { ok = true });
     }
-}
-
-public class LogRequest
-{
-    public string Query { get; set; } = string.Empty;
-    public int ResultCount { get; set; }
-}
-
-public class LogSelectionRequest
-{
-    public string Query { get; set; } = string.Empty;
-    public string Title { get; set; } = string.Empty;
-    public string Artist { get; set; } = string.Empty;
-    public bool PickedManually { get; set; }
 }

@@ -226,15 +226,8 @@ function collectDoc() {
     };
 }
 
-function applyEnriched(e) {
-    var s = e.search || {};
-    $('#f-summary').val(e.summary || '');
-    $('#f-explanation').val(e.explanation || '');
-    $('#f-practical').val(e.practical_application || '');
-    $('#f-worship-style').val(s.worship_style || '');
-    $('#f-energy-level').val(s.energy_level || '');
-    $('#f-occasion').val(s.occasion || '');
-    function setList(id, arr) { $('#' + id).val((arr||[]).join('\n')); }
+function applyEnriched(s) {
+    function setList(id, arr) { $('#' + id).val((arr || []).join('\n')); }
     setList('f-themes', s.themes);
     setList('f-contexts', s.contexts);
     setList('f-keywords', s.keywords);
@@ -244,14 +237,25 @@ function applyEnriched(e) {
     setList('f-biblical-chars', s.biblical_characters);
     setList('f-moods', s.moods);
     setList('f-synonyms', s.synonyms);
+    if (s.worship_style) $('#f-worship-style').val(s.worship_style);
+    if (s.energy_level)  $('#f-energy-level').val(s.energy_level);
+    if (s.occasion)      $('#f-occasion').val(s.occasion);
+    if (s.worship_moments) {
+        editorMoments = s.worship_moments;
+        $('.ws-moment-btn').each(function(){
+            $(this).toggleClass('selected', editorMoments.indexOf($(this).data('moment')) !== -1);
+        });
+    }
 }
 
 function showStatus(html, type) {
-    var colors = { success: '#122016', danger: '#2a1215', info: '#131822' };
+    var colors  = { success: '#122016', danger: '#2a1215', info: '#131822' };
     var borders = { success: '#1d4a2b', danger: '#5c2b2e', info: '#1d3a5c' };
-    var texts = { success: '#69d18a', danger: '#ff8a80', info: '#80c4e8' };
-    var el = $('#statusMsg');
-    el.attr('style', 'display:block;padding:12px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;background:' + colors[type] + ';border:1px solid ' + borders[type] + ';color:' + texts[type]).html(html);
+    var texts   = { success: '#69d18a', danger: '#ff8a80', info: '#80c4e8' };
+    $('#statusMsg').attr('style',
+        'display:block;padding:12px 16px;border-radius:10px;font-size:14px;margin-bottom:16px;' +
+        'background:' + colors[type] + ';border:1px solid ' + borders[type] + ';color:' + texts[type]
+    ).html(html);
 }
 
 $('#saveBtn').click(function(){
@@ -261,35 +265,49 @@ $('#saveBtn').click(function(){
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(collectDoc()),
-        success: function(){
-            showStatus('✓ Salvo com sucesso!', 'success');
-            btn.prop('disabled', false);
-        },
-        error: function(xhr){
-            showStatus('Erro ao salvar: ' + ((xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText), 'danger');
-            btn.prop('disabled', false);
-        }
+        success: function(){ showStatus('✓ Salvo com sucesso!', 'success'); btn.prop('disabled', false); },
+        error: function(xhr){ showStatus('Erro ao salvar: ' + ((xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText), 'danger'); btn.prop('disabled', false); }
     });
 });
 
-$('#enrichBtn').click(function(){
+// Paragraph-by-paragraph enrichment (same flow as Preview)
+$('#enrichBtn').click(async function(){
     var btn = $(this).prop('disabled', true);
-    showStatus('<span class="ws-spinner" style="width:14px;height:14px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Consultando Groq LLM…', 'info');
-    $.ajax({
-        url: '@Url.Action("Enrich","MusicEditor")',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(collectDoc()),
-        success: function(enriched){
-            applyEnriched(enriched);
-            showStatus('✓ Enriquecimento aplicado! Revise e salve.', 'success');
-            btn.prop('disabled', false);
-        },
-        error: function(xhr){
-            showStatus('Erro: ' + ((xhr.responseJSON && xhr.responseJSON.error) || xhr.statusText), 'danger');
-            btn.prop('disabled', false);
-        }
-    });
+    var doc = collectDoc();
+    var paragraphs = (doc.lyrics || '').split(/\n\s*\n/).map(function(p){ return p.trim(); }).filter(function(p){ return p.length > 10; });
+    if (!paragraphs.length) { showStatus('Nenhuma estrofe encontrada na letra.', 'danger'); btn.prop('disabled', false); return; }
+
+    var accumulated = { themes:[], moods:[], contexts:[], keywords:[], biblical_topics:[], biblical_references:[], biblical_books:[], biblical_characters:[], synonyms:[], worship_style:'', energy_level:'', occasion:'', worship_moments:[] };
+
+    showStatus('<span class="ws-spinner" style="width:13px;height:13px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Analisando estrofe 1/' + paragraphs.length + '…', 'info');
+
+    for (var i = 0; i < paragraphs.length; i++) {
+        showStatus('<span class="ws-spinner" style="width:13px;height:13px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Estrofe ' + (i+1) + '/' + paragraphs.length + '…', 'info');
+        try {
+            var newTags = await $.ajax({ url: '@Url.Action("EnrichParagraph","MusicIndex")', method: 'POST', contentType: 'application/json',
+                data: JSON.stringify({ paragraph: paragraphs[i], title: doc.title, artist: doc.artist, existing_tags: accumulated }) });
+            ['themes','moods','contexts','keywords','biblical_topics','biblical_references','biblical_books','biblical_characters','synonyms'].forEach(function(f){
+                var added = (newTags[f] || []).filter(function(v){ return v && !accumulated[f].some(function(e){ return e.toLowerCase()===v.toLowerCase(); }); });
+                accumulated[f] = accumulated[f].concat(added);
+            });
+            if (!accumulated.worship_style && newTags.worship_style) accumulated.worship_style = newTags.worship_style;
+            if (!accumulated.energy_level  && newTags.energy_level)  accumulated.energy_level  = newTags.energy_level;
+            if (!accumulated.occasion      && newTags.occasion)       accumulated.occasion      = newTags.occasion;
+        } catch(e) { /* continue on paragraph error */ }
+    }
+
+    showStatus('<span class="ws-spinner" style="width:13px;height:13px;border-width:2px;display:inline-block;vertical-align:middle;margin-right:8px"></span> Gerando resumo…', 'info');
+    try {
+        doc.search = accumulated;
+        var summary = await $.ajax({ url: '@Url.Action("EnrichSummary","MusicIndex")', method: 'POST', contentType: 'application/json', data: JSON.stringify(doc) });
+        $('#f-summary').val(summary.summary || '');
+        $('#f-explanation').val(summary.explanation || '');
+        $('#f-practical').val(summary.practical_application || '');
+    } catch(e) { /* summary optional */ }
+
+    applyEnriched(accumulated);
+    showStatus('✓ Enriquecimento aplicado! Revise e salve.', 'success');
+    btn.prop('disabled', false);
 });
 </script>
 }

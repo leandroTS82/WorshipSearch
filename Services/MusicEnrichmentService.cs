@@ -37,7 +37,7 @@ public class MusicEnrichmentService : IMusicEnrichmentService
         var prompt = _promptBuilder.BuildSummaryPrompt(doc);
         var response = await _groqService.CompleteAsync(prompt);
 
-        var cleaned = Regex.Replace(response, @"```(?:json)?", string.Empty).Trim();
+        var cleaned = StripMarkdown(response);
         var node = JsonNode.Parse(cleaned);
         if (node == null) return (string.Empty, string.Empty, string.Empty);
 
@@ -48,12 +48,15 @@ public class MusicEnrichmentService : IMusicEnrichmentService
         );
     }
 
+    private static string StripMarkdown(string response) =>
+        Regex.Replace(response, @"```(?:json)?", string.Empty).Trim();
+
     private static SearchMetadata ParseTagsOnly(string llmResponse)
     {
         var result = new SearchMetadata();
         try
         {
-            var cleaned = Regex.Replace(llmResponse, @"```(?:json)?", string.Empty).Trim();
+            var cleaned = StripMarkdown(llmResponse);
             var node = JsonNode.Parse(cleaned);
             if (node == null) return result;
 
