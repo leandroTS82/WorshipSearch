@@ -1,0 +1,127 @@
+@model List<WorshipSearch.Models.LibrarySearchResult>
+@{
+    ViewData["Title"] = "Biblioteca";
+    var query = ViewBag.Query as string ?? "";
+    var approvedOnly = (bool)(ViewBag.ApprovedOnly ?? false);
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="bi bi-collection text-primary me-2"></i>Biblioteca</h4>
+    <p class="text-muted small mb-3">@Model.Count música(s) na biblioteca.</p>
+
+    <form method="get" action="@Url.Action("Index","MusicLibrary")">
+        <div class="input-group mb-2">
+            <input type="text" name="q" value="@query" class="form-control" placeholder="Filtrar por título, artista, tema..." />
+            <button class="btn btn-outline-primary" type="submit"><i class="bi bi-filter"></i> Filtrar</button>
+            @if (!string.IsNullOrWhiteSpace(query))
+            {
+                <a href="@Url.Action("Index","MusicLibrary")" class="btn btn-outline-secondary">Limpar</a>
+            }
+        </div>
+        <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" name="approvedOnly" value="true" id="approvedOnly"
+                   @(approvedOnly ? "checked" : "") onchange="this.form.submit()" />
+            <label class="form-check-label text-muted small" for="approvedOnly">Apenas aprovadas</label>
+        </div>
+    </form>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="text-center py-5 text-muted">
+        <i class="bi bi-collection fs-1 d-block mb-3"></i>
+        <p>Nenhuma música encontrada. <a href="@Url.Action("Index","MusicSearch")">Indexar músicas</a>.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+            <thead class="text-muted small">
+                <tr>
+                    <th></th>
+                    <th>Título</th>
+                    <th>Artista</th>
+                    <th>Temas</th>
+                    <th>Moods</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var doc = item.Document;
+                    <tr>
+                        <td style="width:48px">
+                            @if (!string.IsNullOrWhiteSpace(doc.Metadata.Image))
+                            {
+                                <img src="@doc.Metadata.Image" class="rounded" width="36" height="36" style="object-fit:cover" />
+                            }
+                        </td>
+                        <td class="fw-semibold">@doc.Title</td>
+                        <td class="text-muted small">@doc.Artist</td>
+                        <td>
+                            @foreach (var t in doc.Search.Themes.Take(2))
+                            {
+                                <span class="chip chip-theme">@t</span>
+                            }
+                        </td>
+                        <td>
+                            @foreach (var m in doc.Search.Moods.Take(2))
+                            {
+                                <span class="chip chip-mood">@m</span>
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm @(doc.Approved ? "btn-success" : "btn-outline-secondary") toggle-approved"
+                                    data-filename="@item.FileName"
+                                    title="@(doc.Approved ? "Aprovada - clique para desaprovar" : "Não aprovada - clique para aprovar")">
+                                <i class="bi @(doc.Approved ? "bi-check-circle-fill" : "bi-circle")"></i>
+                            </button>
+                        </td>
+                        <td class="text-end">
+                            <a href="@Url.Action("Edit","MusicEditor", new { fileName = item.FileName })"
+                               class="btn btn-sm btn-outline-light me-1">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <button class="btn btn-sm btn-outline-danger delete-btn" data-filename="@item.FileName">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@section Scripts {
+<script>
+$('.toggle-approved').click(function(){
+    var btn = $(this);
+    var fileName = btn.data('filename');
+    $.post('@Url.Action("ToggleApproved","MusicLibrary")', { fileName: fileName }, function(r){
+        if (r.approved) {
+            btn.removeClass('btn-outline-secondary').addClass('btn-success').find('i').removeClass('bi-circle').addClass('bi-check-circle-fill');
+        } else {
+            btn.removeClass('btn-success').addClass('btn-outline-secondary').find('i').removeClass('bi-check-circle-fill').addClass('bi-circle');
+        }
+    });
+});
+
+$('.delete-btn').click(function(){
+    if (!confirm('Excluir esta música da biblioteca?')) return;
+    var btn = $(this);
+    var fileName = btn.data('filename');
+    $.ajax({
+        url: '@Url.Action("Delete","MusicLibrary")?fileName=' + encodeURIComponent(fileName),
+        method: 'DELETE',
+        success: function(){
+            btn.closest('tr').fadeOut(300, function(){ $(this).remove(); });
+        },
+        error: function(){ alert('Erro ao excluir.'); }
+    });
+});
+</script>
+}

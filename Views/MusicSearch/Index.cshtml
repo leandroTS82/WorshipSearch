@@ -1,0 +1,74 @@
+@{
+    ViewData["Title"] = "Indexar Música";
+}
+
+<div class="mb-4">
+    <h4 class="fw-bold mb-1"><i class="bi bi-cloud-download text-primary me-2"></i>Indexar Música</h4>
+    <p class="text-muted small mb-3">Busque músicas no letras.mus.br para indexar na biblioteca.</p>
+
+    <div class="input-group input-group-lg">
+        <input type="text" id="searchInput" class="form-control"
+               placeholder="Nome da música, artista ou álbum..." autofocus />
+        <button class="btn btn-primary px-4" id="searchBtn">
+            <i class="bi bi-search"></i> Buscar
+        </button>
+    </div>
+</div>
+
+<div id="loading" class="text-center py-4 d-none">
+    <div class="spinner-border text-primary"></div>
+    <p class="text-muted mt-2">Buscando em letras.mus.br...</p>
+</div>
+
+<div id="results" class="row g-3"></div>
+
+@section Scripts {
+<script>
+$(function(){
+    function search() {
+        var q = $('#searchInput').val().trim();
+        if (!q) return;
+
+        $('#loading').removeClass('d-none');
+        $('#results').empty();
+
+        $.getJSON('@Url.Action("SearchApi","MusicSearch")', { q: q }, function(data) {
+            $('#loading').addClass('d-none');
+            if (!data.length) {
+                $('#results').html('<div class="col-12"><p class="text-muted">Nenhum resultado encontrado.</p></div>');
+                return;
+            }
+            data.forEach(function(r) {
+                var img = r.image ? `<img src="${r.image}" class="rounded me-3" width="48" height="48" style="object-fit:cover;flex-shrink:0" />` : '';
+                var previewUrl = '@Url.Action("Preview","MusicIndex")?url=' + encodeURIComponent(r.url);
+                $('#results').append(`
+                    <div class="col-12 col-md-6 col-xl-4">
+                        <div class="card bg-dark border-secondary song-card h-100">
+                            <div class="card-body d-flex align-items-center">
+                                ${img}
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-truncate">${r.title}</div>
+                                    <div class="text-muted small text-truncate">${r.artist}</div>
+                                    ${r.genre ? `<span class="chip">${r.genre}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="card-footer border-secondary">
+                                <a href="${previewUrl}" class="btn btn-sm btn-primary w-100">
+                                    <i class="bi bi-eye"></i> Visualizar &amp; Indexar
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `);
+            });
+        }).fail(function() {
+            $('#loading').addClass('d-none');
+            $('#results').html('<div class="col-12"><div class="alert alert-danger">Erro ao buscar. Tente novamente.</div></div>');
+        });
+    }
+
+    $('#searchBtn').click(search);
+    $('#searchInput').keypress(function(e){ if (e.which === 13) search(); });
+});
+</script>
+}

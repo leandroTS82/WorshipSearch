@@ -1,0 +1,271 @@
+@model WorshipSearch.Models.MusicDocument
+@{
+    ViewData["Title"] = "Editar - " + Model.Title;
+    var fileName = ViewBag.FileName as string ?? "";
+}
+
+<div class="mb-3 d-flex align-items-center gap-3 flex-wrap">
+    <a href="@Url.Action("Index","MusicLibrary")" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Biblioteca
+    </a>
+    <h5 class="mb-0 fw-bold flex-grow-1">Editar: @Model.Title</h5>
+    <div class="d-flex gap-2">
+        <button id="enrichBtn" class="btn btn-sm btn-primary">
+            <i class="bi bi-stars"></i> Re-enriquecer IA
+        </button>
+        <button id="saveBtn" class="btn btn-sm btn-success">
+            <i class="bi bi-save"></i> Salvar
+        </button>
+    </div>
+</div>
+
+<div id="statusMsg" class="d-none"></div>
+
+<div class="row g-4">
+    <!-- Left column: basic info + lyrics -->
+    <div class="col-12 col-lg-5">
+        <div class="card bg-dark border-secondary mb-3">
+            <div class="card-header border-secondary fw-semibold small">Informações Básicas</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label small text-muted">ID</label>
+                    <input type="text" id="f-id" class="form-control form-control-sm font-monospace" value="@Model.Id" />
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label small text-muted">Título</label>
+                        <input type="text" id="f-title" class="form-control form-control-sm" value="@Model.Title" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label small text-muted">Artista</label>
+                        <input type="text" id="f-artist" class="form-control form-control-sm" value="@Model.Artist" />
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label small text-muted">Álbum</label>
+                        <input type="text" id="f-album" class="form-control form-control-sm" value="@Model.Album" />
+                    </div>
+                    <div class="col">
+                        <label class="form-label small text-muted">Gênero</label>
+                        <input type="text" id="f-genre" class="form-control form-control-sm" value="@Model.Genre" />
+                    </div>
+                </div>
+                <div class="row g-2 mb-2">
+                    <div class="col">
+                        <label class="form-label small text-muted">Idioma</label>
+                        <input type="text" id="f-language" class="form-control form-control-sm" value="@Model.Language" />
+                    </div>
+                    <div class="col d-flex align-items-end">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="f-approved" @(Model.Approved ? "checked" : "") />
+                            <label class="form-check-label small" for="f-approved">Aprovada</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary mb-3">
+            <div class="card-header border-secondary fw-semibold small">Letra</div>
+            <div class="card-body p-0">
+                <textarea id="f-lyrics" class="form-control border-0 rounded-0 bg-dark lyrics-box" rows="14"
+                          style="resize:vertical">@Model.Lyrics</textarea>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary fw-semibold small">Metadados</div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <label class="form-label small text-muted">URL Canônica</label>
+                    <input type="text" id="f-canonical-url" class="form-control form-control-sm" value="@Model.Metadata.CanonicalUrl" />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small text-muted">Imagem</label>
+                    <input type="text" id="f-image" class="form-control form-control-sm" value="@Model.Metadata.Image" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right column: enrichment fields -->
+    <div class="col-12 col-lg-7">
+        <div class="card bg-dark border-secondary mb-3">
+            <div class="card-header border-secondary fw-semibold small">Conteúdo Gerado por IA</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Resumo</label>
+                    <textarea id="f-summary" class="form-control form-control-sm" rows="2">@Model.Summary</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Explicação Teológica</label>
+                    <textarea id="f-explanation" class="form-control form-control-sm" rows="3">@Model.Explanation</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label small text-muted">Aplicação Prática</label>
+                    <textarea id="f-practical" class="form-control form-control-sm" rows="2">@Model.PracticalApplication</textarea>
+                </div>
+            </div>
+        </div>
+
+        <div class="card bg-dark border-secondary mb-3">
+            <div class="card-header border-secondary fw-semibold small">Busca &amp; Classificação</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-6 col-md-4">
+                        <label class="form-label small text-muted">Estilo de Louvor</label>
+                        <input type="text" id="f-worship-style" class="form-control form-control-sm" value="@Model.Search.WorshipStyle" />
+                    </div>
+                    <div class="col-6 col-md-4">
+                        <label class="form-label small text-muted">Nível de Energia</label>
+                        <input type="text" id="f-energy-level" class="form-control form-control-sm" value="@Model.Search.EnergyLevel" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small text-muted">Ocasião</label>
+                        <input type="text" id="f-occasion" class="form-control form-control-sm" value="@Model.Search.Occasion" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @{
+            void ArrayField(string label, string id, List<string> values)
+            {
+                <div class="mb-3">
+                    <label class="form-label small text-muted">@label</label>
+                    <textarea id="@id" class="form-control form-control-sm" rows="2"
+                              placeholder="Um por linha">@string.Join("\n", values)</textarea>
+                </div>
+            }
+        }
+
+        <div class="card bg-dark border-secondary">
+            <div class="card-header border-secondary fw-semibold small">Listas de Busca</div>
+            <div class="card-body">
+                <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                        @{ ArrayField("Temas", "f-themes", Model.Search.Themes); }
+                        @{ ArrayField("Contextos", "f-contexts", Model.Search.Contexts); }
+                        @{ ArrayField("Keywords", "f-keywords", Model.Search.Keywords); }
+                        @{ ArrayField("Sinônimos", "f-synonyms", Model.Search.Synonyms); }
+                    </div>
+                    <div class="col-12 col-md-6">
+                        @{ ArrayField("Tópicos Bíblicos", "f-biblical-topics", Model.Search.BiblicalTopics); }
+                        @{ ArrayField("Referências Bíblicas", "f-biblical-refs", Model.Search.BiblicalReferences); }
+                        @{ ArrayField("Livros Bíblicos", "f-biblical-books", Model.Search.BiblicalBooks); }
+                        @{ ArrayField("Personagens Bíblicos", "f-biblical-chars", Model.Search.BiblicalCharacters); }
+                        @{ ArrayField("Moods", "f-moods", Model.Search.Moods); }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function toLines(id) {
+    return $('#' + id).val().split('\n').map(s => s.trim()).filter(s => s);
+}
+
+function collectDoc() {
+    return {
+        id: $('#f-id').val(),
+        title: $('#f-title').val(),
+        artist: $('#f-artist').val(),
+        album: $('#f-album').val(),
+        genre: $('#f-genre').val(),
+        language: $('#f-language').val(),
+        approved: $('#f-approved').is(':checked'),
+        lyrics: $('#f-lyrics').val(),
+        summary: $('#f-summary').val(),
+        explanation: $('#f-explanation').val(),
+        practical_application: $('#f-practical').val(),
+        search: {
+            themes: toLines('f-themes'),
+            contexts: toLines('f-contexts'),
+            keywords: toLines('f-keywords'),
+            biblical_topics: toLines('f-biblical-topics'),
+            biblical_references: toLines('f-biblical-refs'),
+            biblical_books: toLines('f-biblical-books'),
+            biblical_characters: toLines('f-biblical-chars'),
+            moods: toLines('f-moods'),
+            synonyms: toLines('f-synonyms'),
+            worship_style: $('#f-worship-style').val(),
+            energy_level: $('#f-energy-level').val(),
+            occasion: $('#f-occasion').val()
+        },
+        metadata: {
+            source: 'letras.mus.br',
+            canonical_url: $('#f-canonical-url').val(),
+            image: $('#f-image').val(),
+            indexed_at: '@Model.Metadata.IndexedAt'
+        }
+    };
+}
+
+function applyEnriched(e) {
+    var s = e.search || {};
+    $('#f-summary').val(e.summary || '');
+    $('#f-explanation').val(e.explanation || '');
+    $('#f-practical').val(e.practical_application || '');
+    $('#f-worship-style').val(s.worship_style || s.worshipStyle || '');
+    $('#f-energy-level').val(s.energy_level || s.energyLevel || '');
+    $('#f-occasion').val(s.occasion || '');
+    function setList(id, arr) { $('#' + id).val((arr||[]).join('\n')); }
+    setList('f-themes', s.themes || s.Themes);
+    setList('f-contexts', s.contexts || s.Contexts);
+    setList('f-keywords', s.keywords || s.Keywords);
+    setList('f-biblical-topics', s.biblical_topics || s.biblicalTopics || s.BiblicalTopics);
+    setList('f-biblical-refs', s.biblical_references || s.biblicalReferences || s.BiblicalReferences);
+    setList('f-biblical-books', s.biblical_books || s.biblicalBooks || s.BiblicalBooks);
+    setList('f-biblical-chars', s.biblical_characters || s.biblicalCharacters || s.BiblicalCharacters);
+    setList('f-moods', s.moods || s.Moods);
+    setList('f-synonyms', s.synonyms || s.Synonyms);
+}
+
+function showStatus(msg, type) {
+    $('#statusMsg').removeClass('d-none alert-success alert-danger alert-info')
+        .addClass('alert alert-' + type).html(msg);
+}
+
+$('#saveBtn').click(function(){
+    var btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Salvando...');
+    $.ajax({
+        url: '@Url.Action("Save","MusicEditor")?fileName=@fileName',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(collectDoc()),
+        success: function(){
+            showStatus('<i class="bi bi-check-circle"></i> Salvo com sucesso!', 'success');
+            btn.prop('disabled', false).html('<i class="bi bi-save"></i> Salvar');
+        },
+        error: function(xhr){
+            showStatus('<i class="bi bi-exclamation-triangle"></i> Erro ao salvar: ' + (xhr.responseJSON?.error || xhr.statusText), 'danger');
+            btn.prop('disabled', false).html('<i class="bi bi-save"></i> Salvar');
+        }
+    });
+});
+
+$('#enrichBtn').click(function(){
+    var btn = $(this).prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Enriquecendo...');
+    showStatus('<div class="spinner-border spinner-border-sm me-2"></div> Consultando Groq LLM...', 'info');
+    $.ajax({
+        url: '@Url.Action("Enrich","MusicEditor")',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(collectDoc()),
+        success: function(enriched){
+            applyEnriched(enriched);
+            showStatus('<i class="bi bi-stars"></i> Enriquecimento aplicado! Revise e salve.', 'success');
+            btn.prop('disabled', false).html('<i class="bi bi-stars"></i> Re-enriquecer IA');
+        },
+        error: function(xhr){
+            showStatus('<i class="bi bi-exclamation-triangle"></i> Erro: ' + (xhr.responseJSON?.error || xhr.statusText), 'danger');
+            btn.prop('disabled', false).html('<i class="bi bi-stars"></i> Re-enriquecer IA');
+        }
+    });
+});
+</script>
+}
